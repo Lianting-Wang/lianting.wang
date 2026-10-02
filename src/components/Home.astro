@@ -1,0 +1,191 @@
+---
+import { Image } from 'astro:assets';
+import portrait from '../assets/portrait.jpg';
+import { profile, projects, publications, education, experience, copy, type Locale } from '../data/site';
+import { LANGUAGE_KEY, preferredLanguage, localizedUrl } from '../lib/language.mjs';
+import '../styles/global.css';
+
+interface Props { locale: Locale; automatic?: boolean }
+const { locale, automatic = false } = Astro.props;
+const t = copy[locale];
+const chineseName = profile.chineseName?.trim();
+const primaryName = locale === 'zh' && chineseName ? chineseName : profile.name;
+const secondaryName = chineseName ? (locale === 'zh' ? profile.name : chineseName) : null;
+const primaryNameLanguage = locale === 'zh' && chineseName ? 'zh-CN' : 'en';
+const canonical = new URL(`/${locale}/`, Astro.site);
+const redirectCode = `(() => {
+  let saved;
+  try { saved = localStorage.getItem(${JSON.stringify(LANGUAGE_KEY)}); } catch {}
+  const choose = ${preferredLanguage.toString()};
+  const toLocale = ${localizedUrl.toString()};
+  const languages = navigator.languages?.length ? navigator.languages : [navigator.language || ''];
+  location.replace(toLocale(choose(saved, languages), location.href).href);
+})();`;
+const sections = [
+  { id: 'about', title: t.about },
+  { id: 'research', title: t.research },
+  { id: 'publications', title: t.publications },
+  { id: 'projects', title: t.projects },
+  { id: 'experience', title: t.experience },
+];
+const person = {
+  '@context': 'https://schema.org', '@type': 'Person',
+  name: profile.name,
+  ...(chineseName ? { alternateName: chineseName } : {}),
+  url: 'https://lianting.wang',
+  jobTitle: 'PhD student in Computer Science',
+  affiliation: { '@type': 'CollegeOrUniversity', name: 'Rensselaer Polytechnic Institute' },
+  alumniOf: { '@type': 'CollegeOrUniversity', name: 'University of Toronto' },
+  sameAs: [profile.github, profile.linkedin],
+};
+---
+<!doctype html>
+<html lang={locale === 'zh' ? 'zh-CN' : 'en'} data-automatic-language={automatic ? 'true' : 'false'}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.title}</title>
+    <meta name="description" content={t.description} />
+    <meta name="theme-color" content="#142b43" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="en" href={new URL('/en/', Astro.site)} />
+    <link rel="alternate" hreflang="zh-Hans" href={new URL('/zh/', Astro.site)} />
+    <link rel="alternate" hreflang="x-default" href={Astro.site} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={t.title} />
+    <meta property="og:description" content={t.description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={locale === 'zh' ? 'zh_CN' : 'en_US'} />
+    <script type="application/ld+json" set:html={JSON.stringify(person).replace(/</g, '\u003c')} />
+    {automatic && <script is:inline set:html={redirectCode} />}
+  </head>
+  <body>
+    <a class="skip-link" href="#content">{t.skip}</a>
+    <aside class="identity" aria-label={locale === 'zh' ? '个人信息' : 'Profile'}>
+      <div class="identity-main">
+        <a class="portrait-frame" href="#about" aria-label={`${primaryName}: ${t.about}`}>
+          <Image src={portrait} alt={profile.name} width={480} height={480} format="webp" quality={85} loading="eager" fetchpriority="high" class="portrait" />
+        </a>
+        <div class="name-block">
+          <p class="eyebrow identity-eyebrow">{t.discipline}</p>
+          <h1 lang={primaryNameLanguage}>{primaryName}</h1>
+          {secondaryName && <p class="second-name" lang={locale === 'zh' ? 'en' : 'zh-CN'}>{secondaryName}</p>}
+          <p class="identity-role">{t.role}<br /><span>{t.affiliation}</span></p>
+        </div>
+        <nav class="section-nav" aria-label={t.navigation}>
+          {sections.map((section, index) => <a href={`#${section.id}`} data-section-link={section.id} class={index === 0 ? 'active' : undefined}><span class="nav-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>{section.title}</a>)}
+        </nav>
+      </div>
+      <div class="identity-bottom">
+        <div class="contact-links" aria-label={t.contact}>
+          <a href={`mailto:${profile.email}`}>{t.email}</a>
+          <a href={profile.github} target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href={profile.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        </div>
+        <div class="language-switch" aria-label={t.language}>
+          <a href="/en/" data-language="en" lang="en" aria-current={locale === 'en' ? 'page' : undefined}>EN</a>
+          <span aria-hidden="true">/</span>
+          <a href="/zh/" data-language="zh" lang="zh-CN" aria-current={locale === 'zh' ? 'page' : undefined}>中文</a>
+        </div>
+      </div>
+    </aside>
+    <main id="content" tabindex="-1">
+      <div class="content-wrap">
+        <section id="about" class="about-section" aria-labelledby="about-heading">
+          <div class="section-heading"><span class="section-index" aria-hidden="true">01</span><h2 id="about-heading">{t.about}</h2></div>
+          <p class="intro">{t.intro}</p>
+          <p>{t.aboutBody}</p>
+          <p>{t.aboutMore}</p>
+          <div class="intro-contact">
+            <a href={`mailto:${profile.email}`} class="email-link">{profile.email}</a>
+            {profile.cv && <a class="resource-link" href={profile.cv}>{t.cv}</a>}
+          </div>
+        </section>
+
+        <section id="research" aria-labelledby="research-heading">
+          <div class="section-heading"><span class="section-index" aria-hidden="true">02</span><h2 id="research-heading">{t.research}</h2></div>
+          <div class="research-intro"><h3>{t.researchTitle}</h3><p>{t.researchIntro}</p></div>
+          <div class="research-grid">
+            <article><h4>{t.gridTitle}</h4><p>{t.gridBody}</p></article>
+            <article><h4>{t.mobilityTitle}</h4><p>{t.mobilityBody}</p></article>
+          </div>
+          <p class="research-methods">{t.methods}</p>
+        </section>
+
+        <section id="publications" aria-labelledby="publications-heading">
+          <div class="section-heading"><span class="section-index" aria-hidden="true">03</span><h2 id="publications-heading">{t.publications}</h2></div>
+          {publications.map(paper => <article class="publication">
+            <div class="publication-year">{paper.year}</div>
+            <div>
+              <h3 lang="en"><a href={paper.article} target="_blank" rel="noopener noreferrer">{paper.title}</a></h3>
+              <p class="authors" lang="en"><strong>{paper.authors[0]}</strong>, {paper.authors[1]}</p>
+              <p class="venue" lang="en"><em>{paper.venue}</em>, {paper.citation} ({paper.year}).</p>
+              <p class="publication-note">{paper.description[locale]}</p>
+              <div class="resource-links">
+                <a href={paper.article} target="_blank" rel="noopener noreferrer">{t.article}</a>
+                <a href={paper.pdf} target="_blank" rel="noopener noreferrer">{t.pdf}</a>
+                <a href={paper.code} target="_blank" rel="noopener noreferrer">{t.code}</a>
+              </div>
+            </div>
+          </article>)}
+        </section>
+
+        <section id="projects" aria-labelledby="projects-heading">
+          <div class="section-heading"><span class="section-index" aria-hidden="true">04</span><h2 id="projects-heading">{t.projects}</h2></div>
+          <div class="project-list">
+            {projects.map(project => <article class="project">
+              <div class="project-label"><p class="eyebrow">{project.category[locale]}</p><h3>{project.name}</h3><ul class="tags" aria-label={locale === 'zh' ? '技术栈' : 'Technologies'}>{project.tags.map(tag => <li>{tag}</li>)}</ul></div>
+              <div class="project-description"><p>{project.description[locale]}</p><div class="resource-links"><a href={project.url} target="_blank" rel="noopener noreferrer">{t.source}</a>{project.release && <a href={project.release} target="_blank" rel="noopener noreferrer">{t.extension}</a>}</div></div>
+            </article>)}
+          </div>
+          <a class="more-projects" href={profile.github} target="_blank" rel="noopener noreferrer">{t.allProjects}</a>
+        </section>
+
+        <section id="experience" aria-labelledby="experience-heading">
+          <div class="section-heading"><span class="section-index" aria-hidden="true">05</span><h2 id="experience-heading">{t.experience}</h2></div>
+          <div class="experience-grid">
+            <div><h3 class="column-label">{t.education}</h3><div class="timeline">{education.map(item => <article><p class="date">{item.years[locale]}</p><h4>{item.institution[locale]}</h4><p class="timeline-role">{item.role[locale]}</p>{item.note[locale] && <p class="timeline-note">{item.note[locale]}</p>}</article>)}</div></div>
+            <div><h3 class="column-label">{t.teaching}</h3><div class="timeline">{experience.map(item => <article><p class="date">{item.years[locale]}</p><h4>{item.institution[locale]}</h4><p class="timeline-role">{item.role[locale]}</p><p class="timeline-note">{item.description[locale]}</p></article>)}</div></div>
+          </div>
+        </section>
+
+        <footer><p>© {new Date().getFullYear()} {profile.name}</p><a href="#about">{t.top}</a></footer>
+      </div>
+    </main>
+    <script>
+      import { LANGUAGE_KEY, localizedUrl } from '../lib/language.mjs';
+      document.querySelectorAll<HTMLAnchorElement>('[data-language]').forEach(link => {
+        const locale = link.dataset.language;
+        if (locale !== 'en' && locale !== 'zh') return;
+        const update = () => { link.href = localizedUrl(locale, location.href).href; };
+        update();
+        window.addEventListener('hashchange', update);
+        link.addEventListener('click', () => {
+          update();
+          try { localStorage.setItem(LANGUAGE_KEY, locale); } catch {}
+        });
+      });
+      const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-section-link]')];
+      const sections = [...document.querySelectorAll<HTMLElement>('main section')];
+      const setActive = (id: string) => links.forEach(link => {
+        const active = link.dataset.sectionLink === id;
+        link.classList.toggle('active', active);
+        if (active) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
+      });
+      setActive(location.hash.slice(1) || 'about');
+      let scheduled = false;
+      const updateActive = () => {
+        scheduled = false;
+        const threshold = matchMedia('(max-width: 900px)').matches ? 110 : 170;
+        const current = sections.filter(section => section.getBoundingClientRect().top <= threshold).at(-1);
+        setActive(current?.id || 'about');
+      };
+      window.addEventListener('scroll', () => {
+        if (!scheduled) { scheduled = true; requestAnimationFrame(updateActive); }
+      }, { passive: true });
+      window.addEventListener('hashchange', () => setActive(location.hash.slice(1) || 'about'));
+    </script>
+  </body>
+</html>
