@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { preferredLanguage, localizedUrl } from '../src/lib/language.mjs';
 
 test('Chinese regional variants use Chinese; other primary languages use English', () => {
@@ -22,4 +23,14 @@ test('language switching preserves the section and query without changing origin
   assert.equal(localizedUrl('zh', 'https://lianting.wang/en/?ref=profile#projects').href, 'https://lianting.wang/zh/?ref=profile#projects');
   assert.equal(localizedUrl('en', 'http://localhost:4321/zh/#publications').href, 'http://localhost:4321/en/#publications');
   assert.throws(() => localizedUrl('fr', 'https://lianting.wang/'), TypeError);
+});
+
+test('root is a distinct language gateway, not a duplicate of the English homepage', () => {
+  const root = readFileSync(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
+  assert.doesNotMatch(root, /<Home\b/);
+  assert.match(root, /href="\/en\/"/);
+  assert.match(root, /href="\/zh\/"/);
+  assert.match(root, /rel="canonical" href=\{root\}/);
+  assert.match(root, /hreflang="x-default" href=\{root\}/);
+  assert.match(root, /location\.replace\(toLocale\(choose\(saved, languages\), location\.href\)\.href\)/);
 });
